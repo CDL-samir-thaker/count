@@ -1,27 +1,25 @@
 name: Count PRs modifying src/test
-
 on:
-  workflow_dispatch:  # manual trigger
+  workflow_dispatch:
   schedule:
-    # Run at 9 AM Toronto (Eastern Time). We'll use 13:00 UTC for DST-aware approximation.
-    - cron: '0 13 * * *'
+    - cron: '0 13 * * *' # 9 AM Toronto approx (EDT)
 
 jobs:
   count-prs:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # needed to inspect full history
+          fetch-depth: 0
 
       - name: Count merged PRs touching src/test
         id: count
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           COUNT=$(gh pr list --repo CDL-samir-thaker/count --state merged --limit 2000 --json number | \
           jq -r '.[].number' | \
           while read pr; do
-            # Check full PR diff for any changes under src/test/
             gh pr diff $pr --repo CDL-samir-thaker/count | grep -q '^diff --git a/src/test/' && echo $pr
           done | wc -l)
 
