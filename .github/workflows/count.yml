@@ -1,0 +1,27 @@
+name: Count Merged PRs in src/test
+
+on:
+  workflow_dispatch:   # Run manually
+  schedule:
+    - cron: "0 0 * * *"  # optional: daily
+
+jobs:
+  count-prs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history for accurate log parsing
+
+      - name: Count merge commits that touched src/test
+        id: count
+        run: |
+          COUNT=$(git log --merges --oneline -- src/test | wc -l)
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "Found $COUNT merged PR(s) affecting src/test/"
+
+      - name: Print result
+        run: |
+          echo "Total merged PRs that modified src/test/: ${{ steps.count.outputs.count }}"
