@@ -1,27 +1,26 @@
-name: Count Merged PRs in src/test
-
+name: Count PRs modifying src/test
 on:
-  workflow_dispatch:   # Run manually
-  schedule:
-    - cron: "0 0 * * *"  # optional: daily
+  workflow_dispatch:
 
 jobs:
   count-prs:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # need full history for accurate log parsing
+          fetch-depth: 0
 
-      - name: Count merge commits that touched src/test
+      - name: Count merged PRs touching src/test
         id: count
         run: |
-          COUNT=$(git log --merges --oneline -- src/test | wc -l)
+          COUNT=$(gh pr list --repo Compass-Digital-Engineering/system-tests --state merged --limit 2000 --json number | \
+          jq -r '.[].number' | \
+          while read pr; do
+            gh pr view $pr --repo Compass-Digital-Engineering/system-tests --json files | \
+            jq -e '.files[].path | select(startswith("src/test/"))' > /dev/null && echo $pr
+          done | wc -l)
           echo "count=$COUNT" >> $GITHUB_OUTPUT
-          echo "Found $COUNT merged PR(s) affecting src/test/"
+          echo "Total merged PRs modifying src/test: $COUNT"
 
       - name: Print result
-        run: |
-          echo "Total merged PRs that modified src/test/: ${{ steps.count.outputs.count }}"
+        run: echo "Total merged PRs modifying src/test: ${{ steps.count.outputs.count }}"
